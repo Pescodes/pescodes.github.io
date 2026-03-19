@@ -280,6 +280,29 @@ footer {
     .plan.pro { transform: none; }
     .features-grid { grid-template-columns: 1fr; }
 }
+    .floating-download {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--primary);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: 0 10px 25px rgba(255, 140, 0, 0.4);
+    z-index: 1000;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(255, 140, 0, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 140, 0, 0); }
+}
 </style>
 </head>
 <body>
@@ -337,7 +360,7 @@ footer {
                     <li>Standard Updates</li>
                     <li>Browser Local Storage</li>
                 </ul>
-                <a href="#" class="btn btn-secondary" style="background: transparent; color: var(--dark); border: 1px solid var(--gray-border);">Current Version</a>
+                <a href="https://chromewebstore.google.com/detail/cbjlbihdfphncjogdclodebjpjfpkgia" target= "_blank" class="btn btn-secondary" style="background: transparent; color: var(--dark); border: 1px solid var(--gray-border); text-decoration: none">Get Basic Version</a>
             </div>
 
             <!-- Pro Plan -->
@@ -379,7 +402,7 @@ footer {
             <div class="footer-links">
                 <h4>Support</h4>
                 <a href="mailto:altpautofill@gmail.com">Contact Us</a>
-                <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener noreferrer">Chrome Web Store</a>
+                <a href="https://chromewebstore.google.com/detail/cbjlbihdfphncjogdclodebjpjfpkgia" target="_blank" rel="noopener noreferrer">Chrome Web Store</a>
                 <a href="https://pescodes.github.io/altp-website/">Installation Guide</a>
             </div>
         </div>
@@ -389,6 +412,8 @@ footer {
         </div>
     </div>
 </footer>
-
+<a href="https://chromewebstore.google.com/detail/cbjlbihdfphncjogdclodebjpjfpkgia" target="_blank" class="floating-download" title="Install to Chrome">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+</a>
 </body>
 </html>
