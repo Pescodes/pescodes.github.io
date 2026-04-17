@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Alt+P Pro Upgrade</title>
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+    <div id="status">
+        <h2>Opening Secure Checkout...</h2>
+        <p>Please complete the payment in the popup window.</p>
+    </div>
+
+    <script>
+        // Use 'live' if you are ready for real payments, 'sandbox' for testing
+        Paddle.Environment.set('sandbox'); 
+        
+        Paddle.Initialize({ 
+            token: 'YOUR_PADDLE_CLIENT_TOKEN' // Get this from Developer Tools > Authentication
+        });
+
+        Paddle.Checkout.open({
+            settings: {
+                displayMode: "overlay",
+                theme: "light"
+            },
+            items: [{
+                priceId: 'pri_01km7nzaaajn42eazajssp4s8c', // Your Price ID from the screenshot
+                quantity: 1
+            }],
+            eventCallback: function(data) {
+                if (data.name === "checkout.completed") {
+                    // This tells the extension's content script to unlock Pro
+                    window.postMessage({ 
+                        type: "PADDLE_CHECKOUT_SUCCESS",
+                        email: data.data.customer.email 
+                    }, "*");
+
+                    document.getElementById('status').innerHTML = "<h2>Success!</h2><p>Alt+P Pro is now active. You can close this tab.</p>";
+                }
+            }
+        });
+    </script>
+</body>
+</html>
