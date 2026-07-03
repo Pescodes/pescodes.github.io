@@ -12,10 +12,10 @@
 
     <script>
         // Use 'live' if you are ready for real payments, 'sandbox' for testing
-        Paddle.Environment.set('sandbox'); 
+        // Paddle.Environment.set('live'); 
         
         Paddle.Initialize({ 
-            token: 'test_ac5e46be088344a91b12226cdd0' // Get this from Developer Tools > Authentication
+            token: 'live_3bcb2b674fb2b3f4319ef714c0b' // Get this from Developer Tools > Authentication
         });
 
         Paddle.Checkout.open({
@@ -24,7 +24,7 @@
                 theme: "light"
             },
             items: [{
-                priceId: 'pri_01kpg6tdbm72a245pe88wbjp8f', // Your Price ID from the screenshot
+                priceId: 'pro_01km7nh29bp2e10czxgmbcwh4b', // Your Price ID from the screenshot
                 quantity: 1
             }],
             eventCallback: function(data) {
