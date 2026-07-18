@@ -37,8 +37,8 @@
         let handler = PaystackPop.setup({
             key: 'pk_live_ef97554af455a25a39c71f1e2f57d49cad0d2086', // Swap with your Paystack Live/Test Public key
             email: targetEmail,
-            amount: 499 * 100, // Price in subunits ($4.99 or 4990 NGN/GHS in cents/kobo)
-            currency: 'USD',   // Match your active dashboard currency configuration
+            amount: 7500 * 100, // Price in subunits ($4.99 or 4990 NGN/GHS in cents/kobo)
+            currency: 'NGN',   // Match your active dashboard currency configuration
             
             callback: function(response) {
                 // Fired directly when payment transaction finishes clearing
