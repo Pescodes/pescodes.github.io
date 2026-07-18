@@ -6,10 +6,39 @@
     <!-- 1. Include Paystack Inline SDK -->
     <script src="https://js.paystack.co/v1/inline.js"></script>
     <style>
-        body { font-family: system-ui, sans-serif; text-align: center; padding: 50px; background: #fafafa; }
-        .checkout-box { background: white; max-width: 400px; margin: 0 auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        button { background: #ff8c00; color: white; font-weight: bold; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; margin-top: 20px; transition: transform 0.1s; }
-        button:active { transform: scale(0.98); }
+        body { 
+            font-family: system-ui, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: #fafafa; 
+        }
+        .checkout-box { 
+            background: white; 
+            max-width: 400px; 
+            margin: 0 auto; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        }
+        button { 
+            background: #ff8c00; 
+            color: white; 
+            font-weight: bold; 
+            border: none; 
+            padding: 12px 24px; 
+            font-size: 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin-top: 20px; 
+            transition: transform 0.1s; 
+        }
+        button:active { 
+            transform: scale(0.98); 
+        }
+        button:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+        }
     </style>
 </head>
 <body>
@@ -17,6 +46,8 @@
 <div class="checkout-box">
     <h2>Unlock Alt+P Pro</h2>
     <p>You are upgrading account: <br><strong id="display-email">Loading email...</strong></p>
+    <!-- Dynamic Price Preview Display -->
+    <p id="price-preview" style="font-weight: bold; color: #555; margin-top: 15px;">Calculating current price...</p>
     <button id="pay-button" onclick="payWithPaystack()">Pay with Paystack</button>
 </div>
 
@@ -25,20 +56,59 @@
     const urlParams = new URLSearchParams(window.location.search);
     const targetEmail = urlParams.get('email');
 
+    // Track the calculated price globally in kobo once fetched
+    let calculatedAmountInKobo = 0;
+
     if (targetEmail) {
         document.getElementById('display-email').textContent = targetEmail;
+        // Fetch the live price immediately when the page loads
+        getLivePrice();
     } else {
         document.getElementById('display-email').textContent = "Error: No email detected from the extension.";
         document.getElementById('pay-button').disabled = true;
     }
 
-    // 3. Initiate Paystack Gateway Payment Process
+    // 3. Safe, Real-Time Market Rate Estimation
+    async function getLivePrice() {
+        try {
+            const response = await fetch("https://open.er-api.com/v6/latest/USD");
+            const data = await response.json();
+            
+            // Extract current NGN rate. 
+            // If the API fails completely, we use a conservative fallback rate (e.g., 1700) 
+            // to protect your margins against sudden local currency drops.
+            const exchangeRate = data.rates?.NGN || 1700; 
+            
+            const basePriceInUSD = 4.99;
+            const dynamicNairaPrice = Math.ceil(basePriceInUSD * exchangeRate);
+            
+            calculatedAmountInKobo = dynamicNairaPrice * 100;
+
+            // Update the UI so the user sees the exact real-time conversion
+            document.getElementById('price-preview').innerHTML = 
+                `Price: ₦${dynamicNairaPrice.toLocaleString()} <span style="font-size: 12px; font-weight: normal; color: #888;">(approx. $4.99)</span>`;
+
+        } catch (err) {
+            console.error("Failed to fetch live exchange rates:", err);
+            // If API fails, calculate using the safe fallback margin
+            const fallbackPrice = Math.ceil(4.99 * 1700);
+            calculatedAmountInKobo = fallbackPrice * 100;
+            document.getElementById('price-preview').textContent = `Price: ₦${fallbackPrice.toLocaleString()}`;
+        }
+    }
+
+    // 4. Initiate Paystack Gateway Payment Process Using Calculated Kobo
     function payWithPaystack() {
+        if (!calculatedAmountInKobo) {
+            alert("Still calculating the dynamic exchange rate. Please try again in a moment.");
+            return;
+        }
+
         let handler = PaystackPop.setup({
-            key: 'pk_live_ef97554af455a25a39c71f1e2f57d49cad0d2086', // Swap with your Paystack Live/Test Public key
+            key: 'pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // Swap with your actual Paystack Public key
             email: targetEmail,
-            amount: 7500 * 100, // Price in subunits ($4.99 or 4990 NGN/GHS in cents/kobo)
-            currency: 'NGN',   // Match your active dashboard currency configuration
+            amount: calculatedAmountInKobo, 
+            currency: 'NGN',   
             
             callback: function(response) {
                 // Fired directly when payment transaction finishes clearing
@@ -51,7 +121,7 @@
         handler.openIframe();
     }
 
-    // 4. Record license row configuration adjustments directly to Supabase
+    // 5. Record license row configuration adjustments directly to Supabase
     async function saveUserUpgradeToSupabase(email, reference) {
         const SUPABASE_URL = "https://jbdjqjhdwkpdjefjbary.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_twiAzYQE097gZ3hpU6janA_SFin-jIJ"; //[cite: 7]
@@ -73,13 +143,14 @@
             });
 
             if (res.ok) {
-                // 5. Success! Broadcast a window message to trigger content.js sync event
+                // Success! Broadcast a window message to trigger content.js sync event
                 window.postMessage({ type: "PAYSTACK_CHECKOUT_SUCCESS" }, "*");
             } else {
                 alert("Payment was successful, but database authorization sync failed. Please contact support.");
             }
         } catch (err) {
             console.error("Database connection failure:", err);
+            alert("Network error connecting to the license database. Please contact support with your payment reference.");
         }
     }
 </script>
