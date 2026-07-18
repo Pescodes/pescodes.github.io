@@ -1,44 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Alt+P Pro Upgrade</title>
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <meta charset="UTF-8">
+    <title>Alt+P Premium Checkout</title>
+    <!-- 1. Include Paystack Inline SDK -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; text-align: center; padding: 50px; background: #fafafa; }
+        .checkout-box { background: white; max-width: 400px; margin: 0 auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        button { background: #ff8c00; color: white; font-weight: bold; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; margin-top: 20px; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+    </style>
 </head>
-<body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-    <div id="status">
-        <h2>Opening Secure Checkout...</h2>
-        <p>Please complete the payment in the popup window.</p>
-    </div>
+<body>
 
-    <script>
-        // Use 'live' if you are ready for real payments, 'sandbox' for testing
-        Paddle.Environment.set('sandbox'); 
-        
-        Paddle.Initialize({ 
-            token: 'test_ac5e46be088344a91b12226cdd0' // Get this from Developer Tools > Authentication
-        });
+<div class="checkout-box">
+    <h2>Unlock Alt+P Pro</h2>
+    <p>You are upgrading account: <br><strong id="display-email">Loading email...</strong></p>
+    <button id="pay-button" onclick="payWithPaystack()">Pay with Paystack</button>
+</div>
 
-        Paddle.Checkout.open({
-            settings: {
-                displayMode: "overlay",
-                theme: "light"
+<script>
+    // 2. Parse out email query parameter passed by extension popup
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetEmail = urlParams.get('email');
+
+    if (targetEmail) {
+        document.getElementById('display-email').textContent = targetEmail;
+    } else {
+        document.getElementById('display-email').textContent = "Error: No email detected from the extension.";
+        document.getElementById('pay-button').disabled = true;
+    }
+
+    // 3. Initiate Paystack Gateway Payment Process
+    function payWithPaystack() {
+        let handler = PaystackPop.setup({
+            key: 'pk_live_ef97554af455a25a39c71f1e2f57d49cad0d2086', // Swap with your Paystack Live/Test Public key
+            email: targetEmail,
+            amount: 499 * 100, // Price in subunits ($4.99 or 4990 NGN/GHS in cents/kobo)
+            currency: 'USD',   // Match your active dashboard currency configuration
+            
+            callback: function(response) {
+                // Fired directly when payment transaction finishes clearing
+                saveUserUpgradeToSupabase(targetEmail, response.reference);
             },
-            items: [{
-                priceId: 'pri_01kpg6tdbm72a245pe88wbjp8f', // Your Price ID from the screenshot
-                quantity: 1
-            }],
-            eventCallback: function(data) {
-                if (data.name === "checkout.completed") {
-                    // This tells the extension's content script to unlock Pro
-                    window.postMessage({ 
-                        type: "PADDLE_CHECKOUT_SUCCESS",
-                        email: data.data.customer.email 
-                    }, "*");
-
-                    document.getElementById('status').innerHTML = "<h2>Success!</h2><p>Alt+P Pro is now active. You can close this tab.</p>";
-                }
+            onClose: function() {
+                alert('Transaction window closed.');
             }
         });
-    </script>
+        handler.openIframe();
+    }
+
+    // 4. Record license row configuration adjustments directly to Supabase
+    async function saveUserUpgradeToSupabase(email, reference) {
+        const SUPABASE_URL = "https://jbdjqjhdwkpdjefjbary.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_twiAzYQE097gZ3hpU6janA_SFin-jIJ"; //[cite: 7]
+
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/paid_users`, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates"
+                },
+                body: JSON.stringify({
+                    email: email,
+                    is_pro: true,
+                    reference: reference
+                })
+            });
+
+            if (res.ok) {
+                // 5. Success! Broadcast a window message to trigger content.js sync event
+                window.postMessage({ type: "PAYSTACK_CHECKOUT_SUCCESS" }, "*");
+            } else {
+                alert("Payment was successful, but database authorization sync failed. Please contact support.");
+            }
+        } catch (err) {
+            console.error("Database connection failure:", err);
+        }
+    }
+</script>
 </body>
 </html>
